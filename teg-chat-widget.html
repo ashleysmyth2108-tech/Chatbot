@@ -1,0 +1,1485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TEG Support Chat — Local Test</title>
+  <style>
+    :root {
+      --teg-navy:    #1a2744;
+      --teg-blue:    #2563eb;
+      --teg-blue-lt: #dbeafe;
+      --teg-green:   #16a34a;
+      --teg-amber:   #d97706;
+      --teg-red:     #dc2626;
+      --teg-grey-0:  #f8fafc;
+      --teg-grey-1:  #f1f5f9;
+      --teg-grey-2:  #e2e8f0;
+      --teg-grey-4:  #94a3b8;
+      --teg-grey-6:  #475569;
+      --teg-grey-9:  #0f172a;
+      --bubble-user: #1a2744;
+      --bubble-ai:   #ffffff;
+      --r:           12px;
+      --font:        'Inter', 'Segoe UI', system-ui, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      background: var(--teg-grey-1);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .harness {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+      width: 100%;
+      max-width: 1100px;
+    }
+    .config-panel {
+      background: #fff;
+      border: 1px solid var(--teg-grey-2);
+      border-radius: var(--r);
+      padding: 20px;
+      width: 300px;
+      flex-shrink: 0;
+      font-size: 13px;
+    }
+    .config-panel h3 {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--teg-grey-4);
+      margin-bottom: 14px;
+    }
+    .config-panel label {
+      display: block;
+      font-weight: 500;
+      color: var(--teg-grey-6);
+      margin-bottom: 4px;
+      margin-top: 12px;
+    }
+    .config-panel input, .config-panel select, .config-panel textarea {
+      width: 100%;
+      padding: 7px 10px;
+      border: 1px solid var(--teg-grey-2);
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: var(--font);
+      color: var(--teg-grey-9);
+      background: var(--teg-grey-0);
+    }
+    .config-panel textarea { resize: vertical; min-height: 60px; font-size: 12px; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 99px;
+      margin-top: 8px;
+    }
+    .badge.mock  { background: #fef9c3; color: #854d0e; }
+    .badge.live  { background: #dcfce7; color: #166534; }
+    .badge.dot::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; display:inline-block; }
+    .hint { font-size: 11px; color: var(--teg-grey-4); margin-top: 6px; line-height: 1.5; }
+    .sep { border: none; border-top: 1px solid var(--teg-grey-2); margin: 16px 0; }
+    .widget-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .widget {
+      width: 100%;
+      max-width: 420px;
+      height: 680px;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 8px 40px rgba(15,23,42,.14);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid var(--teg-grey-2);
+    }
+    .widget-header {
+      background: var(--teg-navy);
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .avatar-ring {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: var(--teg-blue);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-size: 17px;
+    }
+    .header-text { flex: 1; }
+    .header-text h2 { font-size: 14px; font-weight: 600; color: #fff; line-height: 1.2; }
+    .header-text p  { font-size: 11px; color: rgba(255,255,255,.55); margin-top: 2px; }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--teg-green);
+      box-shadow: 0 0 0 2px rgba(22,163,74,.25);
+      flex-shrink: 0;
+    }
+    .status-dot.away    { background: var(--teg-amber); box-shadow: 0 0 0 2px rgba(217,119,6,.25); }
+    .status-dot.offline { background: var(--teg-grey-4); box-shadow: none; }
+    .screen { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+    .screen.active { display: flex; }
+
+    /* INTRO */
+    #screen-intro { padding: 28px 24px 20px; gap: 0; }
+    .intro-hero { text-align: center; padding-bottom: 24px; }
+    .intro-hero .logo { font-size: 32px; margin-bottom: 10px; }
+    .intro-hero h1 { font-size: 17px; font-weight: 700; color: var(--teg-grey-9); line-height: 1.3; }
+    .intro-hero p  { font-size: 13px; color: var(--teg-grey-6); margin-top: 6px; line-height: 1.5; }
+    .intro-form { display: flex; flex-direction: column; gap: 12px; flex: 1; }
+    .field label { display: block; font-size: 12px; font-weight: 600; color: var(--teg-grey-6); margin-bottom: 5px; }
+    .field input {
+      width: 100%; padding: 10px 12px;
+      border: 1.5px solid var(--teg-grey-2);
+      border-radius: 8px; font-size: 14px;
+      font-family: var(--font); color: var(--teg-grey-9);
+      background: var(--teg-grey-0); transition: border-color .15s;
+    }
+    .field input:focus { outline: none; border-color: var(--teg-blue); background: #fff; }
+    .field input.error { border-color: var(--teg-red); }
+    .field-error { font-size: 11px; color: var(--teg-red); margin-top: 4px; display: none; }
+    .field-error.show { display: block; }
+    .btn-start {
+      margin-top: 4px; padding: 12px;
+      background: var(--teg-blue); color: #fff;
+      border: none; border-radius: 8px;
+      font-size: 14px; font-weight: 600;
+      font-family: var(--font); cursor: pointer; transition: background .15s;
+    }
+    .btn-start:hover { background: #1d4ed8; }
+    .privacy-note { font-size: 11px; color: var(--teg-grey-4); text-align: center; margin-top: 10px; line-height: 1.5; }
+
+    /* CHAT */
+    #screen-chat { flex-direction: column; }
+    .messages {
+      flex: 1; overflow-y: auto;
+      padding: 16px 14px;
+      display: flex; flex-direction: column; gap: 10px;
+      scroll-behavior: smooth;
+    }
+    .messages::-webkit-scrollbar { width: 4px; }
+    .messages::-webkit-scrollbar-thumb { background: var(--teg-grey-2); border-radius: 2px; }
+    .msg { display: flex; flex-direction: column; max-width: 82%; }
+    .msg.user { align-self: flex-end; align-items: flex-end; }
+    .msg.ai   { align-self: flex-start; align-items: flex-start; }
+    .msg.system { align-self: center; max-width: 90%; }
+    .bubble {
+      padding: 10px 14px; border-radius: 16px;
+      font-size: 13.5px; line-height: 1.55;
+      white-space: pre-wrap; word-break: break-word;
+    }
+    .msg.user .bubble { background: var(--bubble-user); color: #fff; border-bottom-right-radius: 4px; }
+    .msg.ai .bubble { background: var(--bubble-ai); color: var(--teg-grey-9); border: 1px solid var(--teg-grey-2); border-bottom-left-radius: 4px; }
+    .msg.system .bubble { background: var(--teg-grey-1); color: var(--teg-grey-6); font-size: 12px; text-align: center; border: 1px solid var(--teg-grey-2); border-radius: 8px; padding: 8px 12px; }
+    .msg-time { font-size: 10px; color: var(--teg-grey-4); margin-top: 3px; padding: 0 4px; }
+
+    /* PRODUCT SELECTION BUTTONS */
+    .product-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px; width: 100%; }
+    .product-btn {
+      padding: 12px 8px; border-radius: 8px;
+      border: 1.5px solid var(--teg-grey-2);
+      background: #fff; color: var(--teg-grey-9);
+      font-size: 12px; font-weight: 600;
+      font-family: var(--font); cursor: pointer;
+      text-align: center; transition: all .15s;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      line-height: 1.3;
+    }
+    .product-btn .btn-icon { font-size: 20px; }
+    .product-btn:hover { border-color: var(--teg-blue); color: var(--teg-blue); background: var(--teg-blue-lt); }
+
+    /* FEEDBACK BUTTONS */
+    .feedback-row { display: flex; gap: 8px; margin-top: 8px; padding: 0 4px; }
+    .feedback-btn {
+      padding: 5px 12px; border-radius: 99px;
+      border: 1.5px solid var(--teg-grey-2);
+      background: #fff; font-size: 12px;
+      cursor: pointer; transition: all .15s; color: var(--teg-grey-6);
+      font-family: var(--font);
+    }
+    .feedback-btn:hover { border-color: var(--teg-blue); color: var(--teg-blue); }
+
+    /* THUMBS DOWN FORK */
+    .thumbs-down-card {
+      background: var(--teg-grey-1); border: 1px solid var(--teg-grey-2);
+      border-radius: 10px; padding: 12px 14px;
+      font-size: 13px; color: var(--teg-grey-6); line-height: 1.5;
+    }
+    .thumbs-down-card strong { display: block; margin-bottom: 8px; color: var(--teg-grey-9); }
+    .fork-btns { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .fork-btn {
+      padding: 8px 14px; border-radius: 8px;
+      border: 1.5px solid var(--teg-blue);
+      background: #fff; color: var(--teg-blue);
+      font-size: 12px; font-weight: 600;
+      font-family: var(--font); cursor: pointer; transition: background .15s;
+    }
+    .fork-btn:hover { background: var(--teg-blue-lt); }
+    .fork-btn.primary { background: var(--teg-blue); color: #fff; }
+    .fork-btn.primary:hover { background: #1d4ed8; }
+
+    /* TYPING */
+    .typing-indicator {
+      display: none; align-items: center; gap: 4px;
+      padding: 10px 14px; background: var(--bubble-ai);
+      border: 1px solid var(--teg-grey-2); border-radius: 16px; border-bottom-left-radius: 4px;
+      width: fit-content;
+    }
+    .typing-indicator.show { display: flex; }
+    .typing-indicator span { width: 6px; height: 6px; border-radius: 50%; background: var(--teg-grey-4); animation: bounce 1.2s infinite; }
+    .typing-indicator span:nth-child(2) { animation-delay: .2s; }
+    .typing-indicator span:nth-child(3) { animation-delay: .4s; }
+    .thinking-spinner {
+      display: inline-block;
+      width: 20px; height: 20px;
+      border: 3px solid #fde68a;
+      border-top-color: #92400e;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* HANDOFF CARDS */
+    .handoff-card { border-radius: 10px; padding: 12px 14px; font-size: 13px; line-height: 1.5; border: 1px solid; margin-top: 4px; }
+    .handoff-card.transfer { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+    .handoff-card.ticket   { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+    .handoff-card.ooh      { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+    .handoff-card strong { display: block; margin-bottom: 4px; }
+    .ticket-ref { font-family: 'Courier New', monospace; font-size: 12px; background: rgba(0,0,0,.06); padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 4px; }
+
+    /* INPUT BAR */
+    .input-bar { display: flex; align-items: flex-end; gap: 8px; padding: 10px 12px 14px; border-top: 1px solid var(--teg-grey-2); background: #fff; flex-shrink: 0; }
+    .input-bar textarea {
+      flex: 1; resize: none; border: 1.5px solid var(--teg-grey-2);
+      border-radius: 10px; padding: 9px 12px;
+      font-size: 13.5px; font-family: var(--font); line-height: 1.45;
+      min-height: 40px; max-height: 120px; overflow-y: auto;
+      color: var(--teg-grey-9); background: var(--teg-grey-0); transition: border-color .15s;
+    }
+    .input-bar textarea:focus { outline: none; border-color: var(--teg-blue); background: #fff; }
+    .input-bar textarea:disabled { opacity: .4; cursor: not-allowed; }
+    .send-btn {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: var(--teg-blue); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      transition: background .15s, opacity .15s;
+    }
+    .send-btn:hover { background: #1d4ed8; }
+    .send-btn:disabled { opacity: .35; cursor: not-allowed; }
+    .send-btn svg { width: 16px; height: 16px; fill: none; stroke: #fff; stroke-width: 2; }
+    .powered-by { font-size: 10px; color: var(--teg-grey-4); text-align: center; padding: 6px 0 2px; flex-shrink: 0; }
+
+    /* CSAT SCREEN */
+    #screen-csat {
+      padding: 32px 24px; gap: 16px;
+      align-items: center; justify-content: center; text-align: center;
+    }
+    #screen-csat h2 { font-size: 17px; font-weight: 700; color: var(--teg-grey-9); }
+    #screen-csat p  { font-size: 13px; color: var(--teg-grey-6); line-height: 1.6; }
+    .stars { display: flex; gap: 8px; justify-content: center; margin: 4px 0; }
+    .star { font-size: 32px; cursor: pointer; transition: transform .1s; filter: grayscale(1); opacity: .4; }
+    .star.active { filter: none; opacity: 1; transform: scale(1.15); }
+    .csat-comment {
+      width: 100%; padding: 10px 12px;
+      border: 1.5px solid var(--teg-grey-2); border-radius: 8px;
+      font-size: 13px; font-family: var(--font); resize: none; min-height: 70px;
+      color: var(--teg-grey-9);
+    }
+    .csat-comment:focus { outline: none; border-color: var(--teg-blue); }
+    .btn-submit-csat {
+      padding: 11px 28px; background: var(--teg-blue); color: #fff;
+      border: none; border-radius: 8px; font-size: 14px; font-weight: 600;
+      font-family: var(--font); cursor: pointer; transition: background .15s;
+    }
+    .btn-submit-csat:hover { background: #1d4ed8; }
+    .btn-submit-csat:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* SOLVED SCREEN */
+    #screen-solved {
+      padding: 32px 24px; gap: 14px;
+      align-items: center; justify-content: center; text-align: center;
+    }
+    #screen-solved .icon { font-size: 48px; }
+    #screen-solved h2 { font-size: 17px; font-weight: 700; color: var(--teg-grey-9); }
+    #screen-solved p  { font-size: 13px; color: var(--teg-grey-6); line-height: 1.6; }
+
+    /* HANDOFF SCREEN */
+    #screen-handoff { padding: 24px; gap: 16px; align-items: center; justify-content: center; text-align: center; }
+    #screen-handoff .icon { font-size: 48px; }
+    #screen-handoff h2 { font-size: 17px; font-weight: 700; color: var(--teg-grey-9); }
+    #screen-handoff p  { font-size: 13.5px; color: var(--teg-grey-6); line-height: 1.6; max-width: 300px; }
+    .btn-back { padding: 10px 20px; background: transparent; color: var(--teg-blue); border: 1.5px solid var(--teg-blue); border-radius: 8px; font-size: 13px; font-weight: 600; font-family: var(--font); cursor: pointer; transition: background .15s; }
+    .btn-back:hover { background: var(--teg-blue-lt); }
+
+    .dev-banner { width: 100%; max-width: 420px; background: #1e1b4b; color: #a5b4fc; font-size: 11px; text-align: center; padding: 6px 12px; border-radius: 0 0 8px 8px; font-family: 'Courier New', monospace; }
+  </style>
+</head>
+<body>
+<div class="harness">
+
+  <!-- CONFIG PANEL -->
+  <div class="config-panel">
+    <h3>Test Config</h3>
+    <label>Mode</label>
+    <select id="cfg-mode" onchange="onModeChange()">
+      <option value="mock">Mock (no PA call)</option>
+      <option value="live">Live PA endpoint</option>
+    </select>
+    <div id="mode-badge" class="badge mock dot">Mock mode</div>
+    <div id="live-config" style="display:none">
+      <label>Power Automate webhook URL</label>
+      <input type="text" id="cfg-webhook" placeholder="https://prod-xx..." />
+    </div>
+    <hr class="sep" />
+    <h3>Simulate response</h3>
+    <label>Action</label>
+    <select id="cfg-action">
+      <option value="STANDARD">STANDARD</option>
+      <option value="HUMAN_NEEDED">HUMAN_NEEDED</option>
+    </select>
+    <label>Resolved</label>
+    <select id="cfg-resolved">
+      <option value="false">false (no feedback buttons)</option>
+      <option value="true">true (show feedback buttons)</option>
+    </select>
+    <label>Mock reply</label>
+    <textarea id="cfg-reply">Thanks for reaching out. Here is what you need to do — navigate to Settings in Courier Exchange and update your details there. Let me know if you need anything else!</textarea>
+    <label>Business hours</label>
+    <select id="cfg-hours">
+      <option value="open">Open</option>
+      <option value="busy">Busy</option>
+      <option value="ooh">Out of hours</option>
+    </select>
+    <label>Mock ticket ID</label>
+    <input type="text" id="cfg-ticket" value="892341" />
+    <hr class="sep" />
+    <h3>Test error states</h3>
+    <button class="btn-back" style="width:100%;margin-top:0;font-size:12px;" onclick="testHoldingMsg()">⏳ Show holding message</button>
+    <button class="btn-back" style="width:100%;margin-top:6px;font-size:12px;" onclick="testFatalError()">⚠️ Show fatal error</button>
+    <button class="btn-back" style="width:100%;margin-top:6px;font-size:12px;" onclick="testHighDemand()">🔴 Show high demand message</button>
+  </div>
+
+  <!-- WIDGET -->
+  <div class="widget-wrap">
+    <div class="widget">
+      <div class="widget-header">
+        <div class="avatar-ring">🚛</div>
+        <div class="header-text">
+          <h2>TEG Support</h2>
+          <p id="header-product-label" style="display:none;color:rgba(255,255,255,.75);font-size:11px;margin-top:2px;"></p>
+        </div>
+        <button id="start-again-btn" onclick="startAgain()" style="display:none;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:11px;font-weight:600;font-family:var(--font);padding:5px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;">← Start again</button>
+        <div class="status-dot" id="status-dot"></div>
+      </div>
+
+      <!-- INTRO -->
+      <div class="screen active" id="screen-intro">
+        <div class="intro-hero">
+          <div class="logo">💬</div>
+          <h1>How can we help?</h1>
+          <p>Tell us a bit about yourself and we will get you to the right place.</p>
+        </div>
+        <div class="intro-form">
+          <div class="field">
+            <label>Full name</label>
+            <input type="text" id="f-name" placeholder="Your name" autocomplete="name" />
+            <div class="field-error" id="err-name">Please enter your name.</div>
+          </div>
+          <div class="field">
+            <label>Email address</label>
+            <input type="email" id="f-email" placeholder="you@company.com" autocomplete="email" />
+            <div class="field-error" id="err-email">Please enter a valid email address.</div>
+          </div>
+          <div class="field">
+            <label>Member ID <span style="font-weight:400;color:var(--teg-grey-4)">(optional)</span></label>
+            <input type="text" id="f-member" placeholder="e.g. CX-12345" />
+          </div>
+          <button class="btn-start" onclick="startChat()">Start conversation</button>
+          <p class="privacy-note">Your details are used only to handle your enquiry and stored securely in line with our privacy policy.</p>
+        </div>
+      </div>
+
+      <!-- CHAT -->
+      <div class="screen" id="screen-chat">
+        <div class="messages" id="messages"></div>
+        <div class="input-bar">
+          <textarea id="msg-input" placeholder="Type your message..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+          <button class="send-btn" id="send-btn" onclick="sendMessage()" title="Send">
+            <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+        <div class="powered-by">Powered by TEG AI · <span id="session-label"></span></div>
+      </div>
+
+      <!-- CSAT -->
+      <div class="screen" id="screen-csat">
+        <div style="font-size:40px">⭐</div>
+        <h2>How did we do?</h2>
+        <p>Your feedback helps us improve our support.</p>
+        <div class="stars">
+          <span class="star" onclick="rateStar(1)">⭐</span>
+          <span class="star" onclick="rateStar(2)">⭐</span>
+          <span class="star" onclick="rateStar(3)">⭐</span>
+          <span class="star" onclick="rateStar(4)">⭐</span>
+          <span class="star" onclick="rateStar(5)">⭐</span>
+        </div>
+        <textarea class="csat-comment" id="csat-comment" placeholder="Any additional comments? (optional)"></textarea>
+        <button class="btn-submit-csat" id="btn-submit-csat" onclick="submitCSAT()" disabled>Submit feedback</button>
+      </div>
+
+      <!-- SOLVED -->
+      <div class="screen" id="screen-solved">
+        <div class="icon">✅</div>
+        <h2>Glad we could help!</h2>
+        <p>Thanks for your feedback. If you need anything else in the future, we are always here.</p>
+        <button class="btn-start" style="margin-top:8px;" onclick="resetChat()">Start a new chat</button>
+      </div>
+
+      <!-- HANDOFF -->
+      <div class="screen" id="screen-handoff">
+        <div id="handoff-icon" class="icon">🎧</div>
+        <h2 id="handoff-title">Connecting you to an agent</h2>
+        <p id="handoff-body">One moment — we are finding the next available agent for you.</p>
+        <button class="btn-back" onclick="goBackToChat()">Back to chat</button>
+      </div>
+    </div>
+    <div class="dev-banner" id="dev-banner">Local test — mock mode active</div>
+  </div>
+
+</div>
+<script>
+/* STATE */
+let user = { name: '', email: '', memberId: '' };
+let history = [];
+let busy = false;
+let csatRating = 0;
+
+/* LIVE AGENT STATE */
+const POLL_URL = 'https://default39c9cfa6ac964804a105db8c03e148.7d.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/25/workflows/573579399d814fd39b9aaf78c016d304/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=zxNYcRevuMUCSotn4qAblZ_1OKagB_nSHcN4-uQqhT8';
+const POST_URL = 'https://default39c9cfa6ac964804a105db8c03e148.7d.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/19/workflows/9bf8facaf85f457d99031889058a3992/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=sZJ8DcNtu-FtVtTuMENqoW_ByPcjDCgShW6I7Jji_BQ';
+let agentMode = false;
+let activeTicketId = null;
+let lastCommentId = null;
+let pollInterval = null;
+
+/* HELPERS */
+function now() {
+  return new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+function isInHours() {
+  const d = new Date(), day = d.getDay(), mins = d.getHours() * 60 + d.getMinutes();
+  return day >= 1 && day <= 5 && mins >= 480 && mins < 1050;
+}
+function cfg(id) { return document.getElementById(id); }
+
+function onModeChange() {
+  const mode = cfg('cfg-mode').value;
+  cfg('live-config').style.display = mode === 'live' ? 'block' : 'none';
+  cfg('mode-badge').className = 'badge dot ' + mode;
+  cfg('mode-badge').textContent = mode === 'live' ? 'Live PA endpoint' : 'Mock mode';
+  cfg('dev-banner').textContent = 'Local test — ' + (mode === 'live' ? 'live PA endpoint' : 'mock mode active');
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  cfg('screen-' + id).classList.add('active');
+}
+
+/* INTRO */
+/* PRODUCT SELECTION */
+let selectedProduct = null;
+
+function startChat() {
+  let valid = true;
+  const name = cfg('f-name').value.trim();
+  const email = cfg('f-email').value.trim();
+  const member = cfg('f-member').value.trim();
+  cfg('f-name').classList.remove('error'); cfg('err-name').classList.remove('show');
+  cfg('f-email').classList.remove('error'); cfg('err-email').classList.remove('show');
+  if (!name) { cfg('f-name').classList.add('error'); cfg('err-name').classList.add('show'); valid = false; }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { cfg('f-email').classList.add('error'); cfg('err-email').classList.add('show'); valid = false; }
+  if (!valid) return;
+  user = { name, email, memberId: member };
+  history = [];
+  selectedProduct = null;
+  cfg('session-label').textContent = name;
+  showScreen('chat');
+  // Disable input until product selected
+  cfg('msg-input').disabled = true;
+  cfg('send-btn').disabled = true;
+  showWelcome();
+}
+
+function showWelcome() {
+  const msgs = cfg('messages');
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ai';
+  wrap.style.maxWidth = '100%';
+  wrap.style.width = '100%';
+  wrap.innerHTML = `
+    <div class="bubble">Hi ${user.name.split(' ')[0]}! 👋 Welcome to TEG Support.<br/><br/>To help get you to the right place, please select the area you need help with:</div>
+    <div class="msg-time">${now()}</div>
+    <div class="product-btns" id="product-btns">
+      <button class="product-btn" onclick="selectProduct('Courier Exchange')"><span class="btn-icon">🚛</span>Courier Exchange</button>
+      <button class="product-btn" onclick="selectProduct('Trustd')"><span class="btn-icon">✅</span>Trustd</button>
+      <button class="product-btn" onclick="selectProduct('SmartPay')"><span class="btn-icon">💳</span>SmartPay</button>
+      <button class="product-btn" onclick="selectProduct('Mobile App')"><span class="btn-icon">📱</span>Mobile App</button>
+      <button class="product-btn" onclick="selectProduct('Renew or Upgrade')"><span class="btn-icon">⬆️</span>Renew or Upgrade</button>
+      <button class="product-btn" onclick="selectProduct('Something else')"><span class="btn-icon">💬</span>Something else</button>
+    </div>`;
+  msgs.appendChild(wrap);
+  scrollBottom();
+}
+
+function selectProduct(product) {
+  selectedProduct = product;
+  // Remove product buttons
+  const btns = document.getElementById('product-btns');
+  if (btns) btns.remove();
+  // Show selection as user bubble
+  appendMsg('user', product);
+  // Bot follow up
+  const label = product === 'Something else' ? 'your query' : product;
+  setTimeout(() => {
+    const msgs = cfg('messages');
+    const wrap = document.createElement('div');
+    wrap.className = 'msg ai';
+    wrap.innerHTML = `
+      <div class="bubble">Got it — how can we help with ${label} today?</div>
+      <div class="msg-time">${now()}</div>`;
+    msgs.appendChild(wrap);
+    scrollBottom();
+    cfg('msg-input').disabled = false;
+    cfg('send-btn').disabled = false;
+    cfg('msg-input').focus();
+    cfg('start-again-btn').style.display = 'inline-block';
+    cfg('header-product-label').style.display = 'block';
+    cfg('header-product-label').textContent = product;
+  }, 400);
+}
+
+function startAgain() {
+  cfg('messages').innerHTML = '';
+  cfg('msg-input').disabled = true;
+  cfg('send-btn').disabled = true;
+  cfg('msg-input').value = '';
+  cfg('start-again-btn').style.display = 'none';
+  cfg('header-product-label').style.display = 'none';
+  cfg('header-product-label').textContent = '';
+  history = [];
+  selectedProduct = null;
+  showWelcome();
+}
+
+/* CHAT */
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+async function sendMessage() {
+  if (busy) return;
+  const input = cfg('msg-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = ''; input.style.height = 'auto';
+  appendMsg('user', text);
+
+  if (agentMode && activeTicketId) {
+    try {
+      const resp = await fetch(POST_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ticketId: activeTicketId,
+          message: text,
+          authorName: user.name
+        })
+      });
+      if (!resp.ok) throw new Error(`Post reply ${resp.status}`);
+    } catch(err) {
+      showFatalError('We could not send your message to the agent. Please refresh and try again.');
+      console.error('Post reply error:', err);
+    }
+    return;
+  }
+
+  history.push({ role: 'user', content: text });
+  setLoading(true);
+
+  const MAX_RETRIES = 5;
+  const RETRY_DELAY = 15000;
+  let attempt = 0;
+  let holdingMsg = null;
+
+  while (attempt < MAX_RETRIES) {
+    try {
+      const result = await getAIResponse(text);
+      // Success — remove holding message if shown
+      if (holdingMsg) { holdingMsg.remove(); holdingMsg = null; }
+      handleResponse(result);
+      setLoading(false);
+      return;
+    } catch(err) {
+      attempt++;
+      const isCapacity = err.message === 'CAPACITY' || err.message === 'TIMEOUT';
+
+      if (isCapacity && attempt < MAX_RETRIES) {
+        // Show or update holding message
+        if (!holdingMsg) {
+          setLoading(false);
+          holdingMsg = appendHoldingMsg();
+        }
+        // Wait 15 seconds then retry
+        await new Promise(r => setTimeout(r, RETRY_DELAY));
+        setLoading(true);
+      } else {
+        // Out of retries or unexpected error
+        if (holdingMsg) { holdingMsg.remove(); holdingMsg = null; }
+        setLoading(false);
+        if (isCapacity) {
+          showCountdownRetry(text, 1);
+        } else {
+          showFatalError('We hit an unexpected issue processing your message.');
+          console.error(err);
+        }
+        return;
+      }
+    }
+  }
+}
+
+function showFatalError(message) {
+  const msgs = cfg('messages');
+  // Remove any existing error cards
+  const existing = document.getElementById('fatal-error-card');
+  if (existing) existing.remove();
+
+  const wrap = document.createElement('div');
+  wrap.className = 'msg system';
+  wrap.id = 'fatal-error-card';
+  wrap.innerHTML = `
+    <div class="bubble" style="background:#fef2f2;border-color:#fecaca;color:#991b1b;text-align:center;max-width:100%;border-radius:10px;padding:14px 16px;">
+      <div style="font-size:20px;margin-bottom:6px;">⚠️</div>
+      <strong style="display:block;margin-bottom:4px;">Sorry, something went wrong</strong>
+      ${message || 'We hit an unexpected issue. Please refresh and try again.'}
+      <br/><br/>
+      <button onclick="location.reload()" style="background:var(--teg-blue);color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;">🔄 Refresh and try again</button>
+    </div>`;
+  msgs.appendChild(wrap);
+  scrollBottom();
+  disableInput('Please refresh to continue');
+}
+
+function appendHoldingMsg() {
+  const msgs = cfg('messages');
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ai';
+  wrap.id = 'holding-msg';
+  wrap.innerHTML = `
+    <div class="bubble" style="background:#fffbeb;border-color:#fde68a;color:#92400e;">
+      <span class="thinking-spinner"></span>Thinking... please bear with me!
+    </div>
+    <div class="msg-time">${now()}</div>`;
+  msgs.appendChild(wrap);
+  scrollBottom();
+  return wrap;
+}
+
+async function getAIResponse(message) {
+  const mode = cfg('cfg-mode').value;
+  if (mode === 'mock') {
+    await new Promise(r => setTimeout(r, 1200 + Math.random() * 800));
+    return {
+      reply: cfg('cfg-reply').value,
+      action: cfg('cfg-action').value,
+      resolved: cfg('cfg-resolved').value === 'true',
+      ticketId: cfg('cfg-ticket').value,
+      agentStatus: cfg('cfg-hours').value
+    };
+  }
+  const webhookUrl = cfg('cfg-webhook').value.trim();
+  if (!webhookUrl) throw new Error('No webhook URL configured.');
+  const payload = {
+    user: { name: user.name, email: user.email, memberId: user.memberId },
+    message: message,
+    selectedProduct: selectedProduct || 'Unknown',
+    history: history.slice(-10),
+    meta: { timestamp: new Date().toISOString(), timezone: 'Europe/London' }
+  };
+
+  // 25 second timeout
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 55000);
+
+  try {
+    const resp = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    if (resp.status === 429 || resp.status === 503 || resp.status === 504) {
+      throw new Error('CAPACITY');
+    }
+    if (!resp.ok) throw new Error(`PA returned ${resp.status}`);
+    return await resp.json();
+  } catch(err) {
+    clearTimeout(timeout);
+    if (err.name === 'AbortError') throw new Error('TIMEOUT');
+    throw err;
+  }
+}
+
+function handleResponse(result) {
+  const { reply, action, resolved, ticketId, agentStatus, ticketCreatedAt } = result;
+  if (action === 'HUMAN_NEEDED') {
+    if (reply) { appendMsg('ai', reply, false); history.push({ role: 'assistant', content: reply }); }
+    const status = agentStatus || (isInHours() ? 'open' : 'ooh');
+    showHandoffCard(status, ticketId);
+    if (status === 'open' && ticketId) startPolling(ticketId, ticketCreatedAt || new Date().toISOString());
+    return;
+  }
+  appendMsg('ai', reply || 'Sorry, I did not receive a response. Please try again.', true);
+  history.push({ role: 'assistant', content: reply });
+}
+
+/* MESSAGES */
+function appendMsg(role, text, showFeedback = false) {
+  const msgs = cfg('messages');
+  const ti = document.getElementById('typing-indicator');
+  if (ti) ti.remove();
+  const wrap = document.createElement('div');
+  wrap.className = `msg ${role}`;
+  if (role === 'system') {
+    wrap.innerHTML = `<div class="bubble">${text}</div>`;
+  } else {
+    wrap.innerHTML = `
+      <div class="bubble">${escHtml(text)}</div>
+      <div class="msg-time">${now()}</div>
+      ${showFeedback ? `<div style="font-size:12px;color:var(--teg-grey-6);margin-top:8px;padding:0 4px;">Did this help solve your question?</div><div class="feedback-row"><button class="feedback-btn" onclick="thumbsUp(this)">👍 Yes, thanks!</button><button class="feedback-btn" onclick="thumbsDown(this)">👎 Not quite</button></div>` : ''}`;
+  }
+  msgs.appendChild(wrap);
+  scrollBottom();
+}
+
+function setLoading(on) {
+  busy = on;
+  cfg('send-btn').disabled = on;
+  cfg('msg-input').disabled = on;
+  const msgs = cfg('messages');
+  if (on) {
+    const wrap = document.createElement('div');
+    wrap.className = 'msg ai';
+    wrap.innerHTML = `<div class="typing-indicator show" id="typing-indicator"><span></span><span></span><span></span></div>`;
+    msgs.appendChild(wrap);
+  } else {
+    const ti = document.getElementById('typing-indicator');
+    if (ti) ti.closest('.msg').remove();
+    cfg('msg-input').disabled = false;
+    cfg('send-btn').disabled = false;
+    cfg('msg-input').focus();
+  }
+  scrollBottom();
+}
+
+function disableInput(placeholder) {
+  cfg('msg-input').disabled = true;
+  cfg('msg-input').placeholder = placeholder;
+  cfg('send-btn').disabled = true;
+}
+
+/* FEEDBACK */
+function thumbsUp(btn) {
+  document.querySelectorAll('.feedback-row').forEach(r => r.remove());
+  csatRating = 0;
+  document.querySelectorAll('.star').forEach(s => s.classList.remove('active'));
+  cfg('csat-comment').value = '';
+  cfg('btn-submit-csat').disabled = true;
+  showScreen('csat');
+}
+
+function thumbsDown(btn) {
+  document.querySelectorAll('.feedback-row').forEach(r => r.remove());
+  const msgs = cfg('messages');
+  const card = document.createElement('div');
+  card.className = 'msg ai';
+  card.innerHTML = `
+    <div class="thumbs-down-card">
+      <strong>Sorry to hear that.</strong>
+      Would you like to ask something else, or would you prefer to speak with one of our team?
+      <div class="fork-btns">
+        <button class="fork-btn" onclick="continueChat(this)">Ask another question</button>
+        <button class="fork-btn primary" onclick="requestHuman(this)">Speak to an agent</button>
+      </div>
+    </div>
+    <div class="msg-time">${now()}</div>`;
+  msgs.appendChild(card);
+  scrollBottom();
+}
+
+function continueChat(btn) {
+  btn.closest('.fork-btns').remove();
+  cfg('msg-input').disabled = false;
+  cfg('send-btn').disabled = false;
+  cfg('msg-input').focus();
+}
+
+async function requestHuman(btn) {
+  btn.closest('.msg').remove();
+  const status = isInHours() ? 'open' : 'ooh';
+  showHandoffCard(status, null);
+
+  // Create a Zendesk ticket via the post reply flow
+  try {
+    const webhookUrl = cfg('cfg-webhook').value.trim();
+    if (webhookUrl) {
+      const resp = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user: { name: user.name, email: user.email, memberId: user.memberId },
+          message: 'Member requested to speak to a human agent via chat feedback.',
+          history: history.slice(-10),
+          meta: { timestamp: new Date().toISOString(), timezone: 'Europe/London', forceHuman: true }
+        })
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.ticketId) {
+          // Update the handoff card with ticket ref
+          const refs = document.querySelectorAll('.ticket-ref');
+          if (refs.length === 0) {
+            const card = document.querySelector('.handoff-card.transfer');
+            if (card) {
+              const ref = document.createElement('span');
+              ref.className = 'ticket-ref';
+              ref.style.display = 'inline-block';
+              ref.style.marginTop = '4px';
+              ref.textContent = `Ref #${data.ticketId}`;
+              card.appendChild(ref);
+            }
+          }
+          if (status === 'open') startPolling(data.ticketId);
+        }
+      }
+    }
+  } catch(err) { console.error('Create ticket error:', err); }
+
+  // Always enable input so member can communicate
+  if (status === 'open') {
+    cfg('msg-input').disabled = false;
+    cfg('msg-input').placeholder = 'Reply to agent...';
+    cfg('send-btn').disabled = false;
+  }
+}
+
+function rateStar(val) {
+  csatRating = val;
+  document.querySelectorAll('.star').forEach((s, i) => s.classList.toggle('active', i < val));
+  cfg('btn-submit-csat').disabled = false;
+}
+
+async function submitCSAT() {
+  const comment = cfg('csat-comment').value.trim();
+  const rating = String(csatRating);
+  const btn = cfg('btn-submit-csat');
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+
+  try {
+    const webhookUrl = activeTicketId ? POST_URL : cfg('cfg-webhook').value.trim();
+
+    if (activeTicketId) {
+      // Agent handled — write to Zendesk ticket + Slack
+      await fetch(POST_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ticketId: activeTicketId,
+          message: '',
+          authorName: user.name,
+          csatRating: rating,
+          csatComment: comment,
+          selectedProduct: selectedProduct || 'Unknown',
+          chatSummary: history.map(h => `${h.role === 'user' ? user.name : 'AI'}: ${h.content}`).join('\n')
+        })
+      });
+    } else {
+      // AI only — post to post reply flow with empty ticketId
+      await fetch(POST_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ticketId: '',
+          message: '',
+          authorName: user.name,
+          csatRating: rating,
+          csatComment: comment,
+          selectedProduct: selectedProduct || 'Unknown',
+          chatSummary: history.map(h => `${h.role === 'user' ? user.name : 'AI'}: ${h.content}`).join('\n')
+        })
+      });
+    }
+  } catch(e) {
+    console.error('CSAT submit error:', e);
+  }
+
+  showScreen('solved');
+  cfg('start-again-btn').style.display = 'none';
+}
+
+/* HANDOFF */
+function showHandoffCard(status, ticketId) {
+  const msgs = cfg('messages');
+  const card = document.createElement('div');
+  card.className = 'msg ai';
+  if (status === 'open') {
+    card.innerHTML = `
+      <div class="handoff-card transfer">
+        <strong>🎧 Connecting you to an agent</strong>
+        I am passing you to one of our team now. An agent will join this conversation shortly.
+        ${ticketId ? `<br/><span class="ticket-ref">Ref #${ticketId}</span>` : ''}
+      </div>
+      <div class="msg-time">${now()}</div>`;
+    updateStatusDot('away');
+    disableInput('Waiting for agent...');
+    if (ticketId) { startPolling(ticketId); }
+  } else if (status === 'busy') {
+    card.innerHTML = `
+      <div class="handoff-card ticket">
+        <strong>📋 Ticket raised for you</strong>
+        All our agents are with other members right now. I have created a support ticket and we will be in touch as soon as possible.
+        ${ticketId ? `<br/><span class="ticket-ref">Ref #${ticketId}</span>` : ''}
+      </div>
+      <div class="msg-time">${now()}</div>`;
+    disableInput('Ticket raised — we will be in touch');
+  } else {
+    const next = getNextOpenTime();
+    card.innerHTML = `
+      <div class="handoff-card ooh">
+        <strong>🌙 We are currently closed</strong>
+        Our team is available Monday to Friday, 08:00 to 17:30. I have created a ticket and we will be in touch when we next open (${next}).
+        ${ticketId ? `<br/><span class="ticket-ref">Ref #${ticketId}</span>` : ''}
+      </div>
+      <div class="msg-time">${now()}</div>`;
+    disableInput('Out of hours — ticket raised');
+  }
+  msgs.appendChild(card);
+  scrollBottom();
+}
+
+function getNextOpenTime() {
+  const d = new Date(), day = d.getDay();
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  if (day === 5 || day === 6 || day === 0) return 'Monday at 08:00';
+  return `${days[day + 1]} at 08:00`;
+}
+
+/* DOM HELPERS */
+function updateStatusDot(state) {
+  cfg('status-dot').className = 'status-dot ' + (state || '');
+}
+function scrollBottom() {
+  const msgs = cfg('messages');
+  requestAnimationFrame(() => { msgs.scrollTop = msgs.scrollHeight; });
+}
+function escHtml(str) {
+  if (!str) return '';
+  // First convert markdown links [text](url) to HTML links
+  let result = str.replace(
+    /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,
+    '<a href="$2" target="_blank" rel="noopener" style="color:var(--teg-blue);text-decoration:underline;font-weight:600;">here</a>'
+  );
+  // Escape HTML in non-link parts
+  result = result
+    .replace(/&(?!amp;)/g,'&amp;')
+    .replace(/<(?!a |\/a>)/g,'&lt;')
+    .replace(/(?<!>)>/g,'&gt;');
+  // Convert "here: URL" or bare URLs to links
+  result = result.replace(
+    /\bhere:?\s*(https?:\/\/[^\s<"]+)/gi,
+    '<a href="$1" target="_blank" rel="noopener" style="color:var(--teg-blue);text-decoration:underline;font-weight:600;">here</a>'
+  );
+  result = result.replace(
+    /(?<!['"=])(https?:\/\/[^\s<"]+)/g,
+    '<a href="$1" target="_blank" rel="noopener" style="color:var(--teg-blue);text-decoration:underline;font-weight:600;">here</a>'
+  );
+  return result.replace(/\n/g,'<br/>');
+}
+function goBackToChat() { showScreen('chat'); }
+function resetChat() {
+  history = []; user = { name:'', email:'', memberId:'' };
+  cfg('messages').innerHTML = '';
+  cfg('f-name').value = ''; cfg('f-email').value = ''; cfg('f-member').value = '';
+  cfg('msg-input').disabled = false;
+  cfg('msg-input').placeholder = 'Type your message...';
+  cfg('send-btn').disabled = false;
+  cfg('start-again-btn').style.display = 'none';
+  cfg('header-product-label').style.display = 'none';
+  cfg('header-product-label').textContent = '';
+  selectedProduct = null;
+  agentMode = false;
+  activeTicketId = null;
+  lastCommentId = null;
+  window.solvedPromptShown = false;
+  stopPolling();
+  updateStatusDot('');
+  showScreen('intro');
+}
+
+/* LIVE AGENT POLLING */
+function startPolling(ticketId, ticketCreatedAt) {
+  agentMode = true;
+  activeTicketId = ticketId;
+  window.solvedPromptShown = false;
+  window.solvedTicketId = null;
+  // Store the ticket creation time — only show comments after this
+  lastCommentId = ticketCreatedAt || new Date().toISOString();
+
+  // Always enable input for member to reply to agent
+  cfg('msg-input').disabled = false;
+  cfg('msg-input').placeholder = 'Reply to agent...';
+  cfg('send-btn').disabled = false;
+
+  if (!ticketId) return;
+
+  // Poll immediately then every 10 seconds
+  pollForReply();
+  pollInterval = setInterval(pollForReply, 10000);
+}
+
+function stopPolling() {
+  if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+  agentMode = false;
+  activeTicketId = null;
+  lastCommentId = null;
+}
+
+let pollErrorCount = 0;
+
+async function pollForReply() {
+  if (!activeTicketId) return;
+  try {
+    const resp = await fetch(POLL_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticketId: activeTicketId, lastCommentId: '' })
+    });
+    if (!resp.ok) throw new Error(`Poll ${resp.status}`);
+    pollErrorCount = 0;
+    const data = await resp.json();
+
+    // Only stop polling if ticket is closed (not just solved)
+    if (data.ticketStatus === 'closed') {
+      stopPolling();
+      const msgs = cfg('messages');
+      const wrap = document.createElement('div');
+      wrap.className = 'msg system';
+      wrap.innerHTML = `<div class="bubble" style="background:#f1f5f9;border-color:#e2e8f0;color:#475569;text-align:center;padding:10px 14px;border-radius:10px;">This conversation is now closed. Please start a new chat if you need further help.</div>`;
+      msgs.appendChild(wrap);
+      scrollBottom();
+      disableInput('Conversation closed');
+      return;
+    }
+
+    // Show solved prompt when human agent solves ticket
+    if (data.ticketStatus === 'solved' && !window.solvedPromptShown) {
+      const allComments = data.comments || [];
+      const lastPublic = allComments.filter(c => c.public).pop();
+      // Only block if last comment is a genuine member reply (name prefix) — not system/reopen messages
+      const isMemberReply = lastPublic && 
+        lastPublic.author_id === 30044360147868 && 
+        lastPublic.body && 
+        lastPublic.body.startsWith(user.name + ':') &&
+        !lastPublic.body.includes('[MEMBER REOPENED]');
+      if (!isMemberReply) {
+        window.solvedPromptShown = true;
+        window.solvedTicketId = activeTicketId;
+        stopPolling();
+        showSolvedPrompt();
+        return;
+      }
+    }
+
+    const comments = data.comments || [];
+    if (comments.length === 0) return;
+
+    const cutoff = lastCommentId;
+    comments.forEach(comment => {
+      if (!comment.public) return;
+      if (comment.created_at <= cutoff) return;
+      // Skip comments from the AI agent user (member's own replies posted back)
+      if (comment.author_id === 30044360147868) return;
+      // Skip comments from the webhook/system user (ticket creation comment)
+      if (comment.author_id === 18690253436188) return;
+      // Skip comments posted by the widget member (name prefix check)
+      if (comment.body && comment.body.startsWith(user.name + ':')) return;
+      appendAgentMsg(comment.body);
+      if (comment.created_at > lastCommentId) lastCommentId = comment.created_at;
+    });
+  } catch(err) {
+    pollErrorCount++;
+    console.error('Poll error:', err);
+    if (pollErrorCount >= 5) {
+      stopPolling();
+      showFatalError('We lost connection to your agent session. Please refresh and try again.');
+    }
+  }
+}
+
+function stripSignature(text) {
+  // Split on double newline and take only content before signature patterns
+  const lines = text.split('\n');
+  const signaturePatterns = [
+    /^Phone\s*[-–]/i,
+    /^Get a £/i,
+    /^\d{5}\s?\d{6}/,  // phone numbers
+    /^Check our systems/i,
+    /^We update our terms/i,
+    /^Need help fast/i,
+    /^--\s*$/,
+    /^_{3,}/
+  ];
+  let cutAt = lines.length;
+  for (let i = 0; i < lines.length; i++) {
+    if (signaturePatterns.some(p => p.test(lines[i].trim()))) {
+      // Walk back to remove preceding blank lines
+      cutAt = i;
+      while (cutAt > 0 && lines[cutAt - 1].trim() === '') cutAt--;
+      break;
+    }
+  }
+  return lines.slice(0, cutAt).join('\n').trim();
+}
+
+function appendAgentMsg(text) {
+  const clean = stripSignature(text);
+  if (!clean) return;
+  const msgs = cfg('messages');
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ai';
+  wrap.innerHTML = `
+    <div style="font-size:10px;color:var(--teg-grey-4);margin-bottom:3px;padding:0 4px;">TEG Support Agent</div>
+    <div class="bubble" style="border-color:#bfdbfe;background:#eff6ff;">${escHtml(clean)}</div>
+    <div class="msg-time">${now()}</div>`;
+  msgs.appendChild(wrap);
+  scrollBottom();
+  try { new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAA').play(); } catch(e) {}
+}
+
+/* ══════════════════════════════════════════════════════════
+   TICKET SOLVED FLOW
+══════════════════════════════════════════════════════════ */
+function showSolvedPrompt() {
+  stopPolling();
+  const msgs = cfg('messages');
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ai';
+  wrap.style.maxWidth = '100%';
+  wrap.style.width = '100%';
+  wrap.innerHTML = `
+    <div class="bubble" style="background:#f0fdf4;border-color:#bbf7d0;color:#166534;width:100%;padding:14px;">
+      <strong style="display:block;margin-bottom:6px;">✅ Your agent has marked this conversation as resolved.</strong>
+      We hope we were able to help! Did we solve your issue today?
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button onclick="solvedYes(this)" style="flex:1;padding:9px;background:#16a34a;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;">👍 Yes, all sorted!</button>
+        <button onclick="solvedNo(this)" style="flex:1;padding:9px;background:#fff;color:#166534;border:1.5px solid #bbf7d0;border-radius:6px;font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;">👎 Not quite</button>
+      </div>
+    </div>
+    <div class="msg-time">${now()}</div>`;
+  msgs.appendChild(wrap);
+  scrollBottom();
+  disableInput('Please respond above');
+}
+
+function solvedYes(btn) {
+  btn.closest('.msg').remove();
+  csatRating = 0;
+  document.querySelectorAll('.star').forEach(s => s.classList.remove('active'));
+  cfg('csat-comment').value = '';
+  cfg('btn-submit-csat').disabled = true;
+  cfg('start-again-btn').style.display = 'none';
+  showScreen('csat');
+}
+
+function solvedNo(btn) {
+  btn.closest('.msg').remove();
+  const msgs = cfg('messages');
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ai';
+  wrap.style.maxWidth = '100%';
+  wrap.style.width = '100%';
+  wrap.innerHTML = `
+    <div class="bubble" style="background:#eff6ff;border-color:#bfdbfe;color:#1e40af;width:100%;padding:14px;">
+      <strong style="display:block;margin-bottom:6px;">Sorry to hear that.</strong>
+      Would you like to ask another question or reopen this ticket so an agent can help further?
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button onclick="askNewQuestion(this)" style="flex:1;padding:9px;background:#fff;color:#1e40af;border:1.5px solid #bfdbfe;border-radius:6px;font-size:12px;font-weight:600;font-family:var(--font);cursor:pointer;">💬 Ask another question</button>
+        <button onclick="reopenTicket(this)" style="flex:1;padding:9px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;font-family:var(--font);cursor:pointer;">🔄 Reopen ticket</button>
+      </div>
+    </div>
+    <div class="msg-time">${now()}</div>`;
+  msgs.appendChild(wrap);
+  scrollBottom();
+}
+
+function askNewQuestion(btn) {
+  btn.closest('.msg').remove();
+  window.solvedPromptShown = false;
+  agentMode = false;
+  cfg('msg-input').disabled = false;
+  cfg('msg-input').placeholder = 'Type your message...';
+  cfg('send-btn').disabled = false;
+  cfg('msg-input').focus();
+  appendMsg('ai', 'Of course — what else can I help you with?');
+}
+
+async function reopenTicket(btn) {
+  btn.disabled = true;
+  btn.textContent = 'Reopening...';
+  const ticketId = window.solvedTicketId || activeTicketId;
+  try {
+    if (ticketId) {
+      await fetch(POST_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ticketId: ticketId,
+          message: '[MEMBER REOPENED] Member indicated their issue was not resolved and has requested to reopen this ticket.',
+          authorName: user.name
+        })
+      });
+    }
+  } catch(e) { console.error('Reopen error:', e); }
+
+  btn.closest('.msg').remove();
+  window.solvedPromptShown = false;
+  window.solvedTicketId = null;
+  agentMode = true;
+  activeTicketId = ticketId;
+
+  // Resume polling
+  pollErrorCount = 0;
+  startPolling(ticketId, lastCommentId);
+
+  appendMsg('ai', 'No problem — I have reopened your ticket and notified the team. An agent will be back with you shortly.');
+}
+function testHoldingMsg() {
+  showScreen('chat');
+  const existing = document.getElementById('holding-msg');
+  if (existing) existing.remove();
+  appendHoldingMsg();
+}
+function testFatalError() {
+  showScreen('chat');
+  showFatalError('We hit an unexpected issue processing your message.');
+}
+/* ══════════════════════════════════════════════════════════
+   HIGH DEMAND — COUNTDOWN + TICKET FORM
+══════════════════════════════════════════════════════════ */
+let countdownTimer = null;
+let pendingRetryMessage = null;
+let retryAttemptNumber = 0;
+
+function showCountdownRetry(originalMessage, attemptNumber) {
+  pendingRetryMessage = originalMessage;
+  retryAttemptNumber = attemptNumber;
+
+  const msgs = cfg('messages');
+  const existing = document.getElementById('countdown-card');
+  if (existing) existing.remove();
+
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ai';
+  wrap.id = 'countdown-card';
+  wrap.style.maxWidth = '100%';
+  wrap.style.width = '100%';
+  wrap.innerHTML = `
+    <div class="bubble" style="background:#fffbeb;border-color:#fde68a;color:#92400e;width:100%;text-align:center;padding:16px;">
+      <div style="font-size:22px;margin-bottom:6px;">⏳</div>
+      <strong>We are experiencing high demand right now.</strong><br/>
+      We could not connect you to our AI assistant. Please try again in 1 minute.
+      <div style="font-size:36px;font-weight:700;margin:12px 0;" id="countdown-display">60</div>
+      <div style="font-size:12px;color:#92400e;opacity:.7;">Retrying automatically...</div>
+    </div>
+    <div class="msg-time">${now()}</div>`;
+  msgs.appendChild(wrap);
+  scrollBottom();
+  disableInput('Please wait...');
+
+  let seconds = 60;
+  countdownTimer = setInterval(() => {
+    seconds--;
+    const display = document.getElementById('countdown-display');
+    if (display) display.textContent = seconds;
+    if (seconds <= 0) {
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+      const card = document.getElementById('countdown-card');
+      if (card) card.remove();
+      retryAfterCountdown(originalMessage, attemptNumber);
+    }
+  }, 1000);
+}
+
+async function retryAfterCountdown(originalMessage, attemptNumber) {
+  setLoading(true);
+  try {
+    const result = await getAIResponse(originalMessage);
+    setLoading(false);
+    handleResponse(result);
+  } catch(err) {
+    setLoading(false);
+    if (attemptNumber < 2) {
+      // Second attempt — show countdown again with option to raise ticket
+      showSecondCountdown(originalMessage);
+    } else {
+      // Give up — offer ticket only
+      showRaiseTicketOption();
+    }
+  }
+}
+
+function showSecondCountdown(originalMessage) {
+  const msgs = cfg('messages');
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ai';
+  wrap.id = 'countdown-card';
+  wrap.style.maxWidth = '100%';
+  wrap.style.width = '100%';
+  wrap.innerHTML = `
+    <div class="bubble" style="background:#fffbeb;border-color:#fde68a;color:#92400e;width:100%;text-align:center;padding:16px;">
+      <div style="font-size:22px;margin-bottom:6px;">⏳</div>
+      <strong>Still busy — one more try.</strong><br/>
+      Retrying in 1 minute, or you can raise a ticket and we will call you back.
+      <div style="font-size:36px;font-weight:700;margin:12px 0;" id="countdown-display">60</div>
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:8px;">
+        <button onclick="skipToTicket()" style="background:#92400e;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:600;font-family:var(--font);cursor:pointer;">📋 Raise a ticket instead</button>
+      </div>
+    </div>
+    <div class="msg-time">${now()}</div>`;
+  msgs.appendChild(wrap);
+  scrollBottom();
+
+  let seconds = 60;
+  countdownTimer = setInterval(() => {
+    seconds--;
+    const display = document.getElementById('countdown-display');
+    if (display) display.textContent = seconds;
+    if (seconds <= 0) {
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+      const card = document.getElementById('countdown-card');
+      if (card) card.remove();
+      retryAfterCountdown(originalMessage, 2);
+    }
+  }, 1000);
+}
+
+function skipToTicket() {
+  clearInterval(countdownTimer);
+  countdownTimer = null;
+  const card = document.getElementById('countdown-card');
+  if (card) card.remove();
+  showRaiseTicketOption();
+}
+
+function showRaiseTicketOption() {
+  const msgs = cfg('messages');
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ai';
+  wrap.style.maxWidth = '100%';
+  wrap.style.width = '100%';
+  wrap.innerHTML = `
+    <div class="bubble" style="background:#eff6ff;border-color:#bfdbfe;color:#1e40af;width:100%;padding:16px;">
+      <strong style="display:block;margin-bottom:8px;">📋 Raise a support ticket</strong>
+      We are still experiencing high demand. Fill in your details below and a member of our team will call you back as soon as possible.
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
+        <input id="ticket-name" type="text" placeholder="Full name" value="${user.name || ''}" style="padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:6px;font-size:13px;font-family:var(--font);color:#1e3a8a;background:#fff;"/>
+        <input id="ticket-email" type="email" placeholder="Email address" value="${user.email || ''}" style="padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:6px;font-size:13px;font-family:var(--font);color:#1e3a8a;background:#fff;"/>
+        <input id="ticket-member" type="text" placeholder="Member ID (optional)" value="${user.memberId || ''}" style="padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:6px;font-size:13px;font-family:var(--font);color:#1e3a8a;background:#fff;"/>
+        <input id="ticket-phone" type="tel" placeholder="Phone number" style="padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:6px;font-size:13px;font-family:var(--font);color:#1e3a8a;background:#fff;"/>
+        <button onclick="submitCallbackTicket()" style="background:var(--teg-blue);color:#fff;border:none;border-radius:6px;padding:10px;font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;margin-top:4px;">Request a callback</button>
+      </div>
+    </div>
+    <div class="msg-time">${now()}</div>`;
+  msgs.appendChild(wrap);
+  scrollBottom();
+  disableInput('Please complete the form above');
+}
+
+async function submitCallbackTicket() {
+  const name = document.getElementById('ticket-name')?.value.trim();
+  const email = document.getElementById('ticket-email')?.value.trim();
+  const memberId = document.getElementById('ticket-member')?.value.trim();
+  const phone = document.getElementById('ticket-phone')?.value.trim();
+
+  if (!name || !email || !phone) {
+    alert('Please fill in your name, email and phone number.');
+    return;
+  }
+
+  const btn = document.querySelector('#ticket-phone + button') ||
+    document.querySelector('[onclick="submitCallbackTicket()"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Submitting...'; }
+
+  try {
+    const webhookUrl = cfg('cfg-webhook').value.trim();
+    if (webhookUrl) {
+      await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user: { name, email, memberId },
+          message: `[CALLBACK REQUEST] Phone: ${phone}. Original query: ${pendingRetryMessage || 'Not captured'}. Selected product: ${selectedProduct || 'Unknown'}.`,
+          selectedProduct: selectedProduct || 'Unknown',
+          history: [],
+          meta: { timestamp: new Date().toISOString(), timezone: 'Europe/London', forceHuman: true, phone }
+        })
+      });
+    }
+  } catch(e) { console.error('Callback ticket error:', e); }
+
+  // Remove form and show confirmation
+  const formCard = document.querySelector('.msg.ai:last-child');
+  if (formCard) formCard.remove();
+  appendMsg('ai', `Thanks ${name.split(' ')[0]}! Your request has been logged and a member of our team will call you back on ${phone} as soon as possible.\n\nOur team is available Monday to Friday, 8:00am to 5:30pm.`);
+  disableInput('Callback requested');
+}
+
+function testHighDemand() {
+  showScreen('chat');
+  showCountdownRetry('test message', 1);
+}
+
+(function init() {
+  updateStatusDot(isInHours() ? '' : 'away');
+})();
+</script>
+</body>
+</html>
