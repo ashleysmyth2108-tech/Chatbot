@@ -1441,28 +1441,22 @@ function testHighDemand() {
 async function raiseGdprTicket(scenario) {
   disableInput('Verification failed — our team will be in touch');
   try {
-    const webhookUrl = cfg('cfg-webhook').value.trim();
-    if (!webhookUrl) return;
     const scenarioLabels = {
       'not_found': 'Email address not found in system',
       'multiple_match': 'Email address matched multiple accounts',
       'id_mismatch': 'Member ID does not match email address'
     };
-    await fetch(webhookUrl, {
+    await fetch(POST_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        user: { name: user.name, email: user.email, memberId: user.memberId },
+        ticketId: '',
         message: `[GDPR VERIFICATION FAILED] Scenario: ${scenario}. Reason: ${scenarioLabels[scenario] || scenario}. Member provided name: ${user.name}, email: ${user.email}, member ID: ${user.memberId}. A human agent must verify identity before sharing any account information.`,
+        authorName: user.name,
+        csatRating: '',
+        csatComment: '',
         selectedProduct: selectedProduct || 'Unknown',
-        history: [],
-        meta: {
-          timestamp: new Date().toISOString(),
-          timezone: 'Europe/London',
-          forceHuman: true,
-          gdprVerificationFailed: true,
-          gdprScenario: scenario
-        }
+        chatSummary: `GDPR verification failed. Scenario: ${scenario}. Name: ${user.name}, Email: ${user.email}, Member ID: ${user.memberId}.`
       })
     });
   } catch(e) {
