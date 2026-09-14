@@ -623,7 +623,14 @@ async function sendMessage() {
   }
 
   history.push({ role: 'user', content: text });
-  setLoading(true);
+
+  // First message — show informative loading message while member data is fetched
+  const isFirstMessage = history.length === 1;
+  if (isFirstMessage) {
+    setLoadingWithMessage('Verifying your details and gathering your account information — this will only take a moment...');
+  } else {
+    setLoading(true);
+  }
 
   const MAX_RETRIES = 5;
   const RETRY_DELAY = 15000;
@@ -646,7 +653,7 @@ async function sendMessage() {
           holdingMsg = appendHoldingMsg();
         }
         await new Promise(r => setTimeout(r, RETRY_DELAY));
-        setLoading(true);
+        setLoading(true); // always use standard loading on retries
       } else {
         if (holdingMsg) { holdingMsg.remove(); holdingMsg = null; }
         setLoading(false);
@@ -809,10 +816,28 @@ function setLoading(on) {
   } else {
     const ti = document.getElementById('typing-indicator');
     if (ti) ti.closest('.msg').remove();
+    const lm = document.getElementById('loading-msg');
+    if (lm) lm.closest('.msg').remove();
     cfg('msg-input').disabled = false;
     cfg('send-btn').disabled = false;
     cfg('msg-input').focus();
   }
+  scrollBottom();
+}
+
+function setLoadingWithMessage(message) {
+  busy = true;
+  cfg('send-btn').disabled = true;
+  cfg('msg-input').disabled = true;
+  const msgs = cfg('messages');
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ai';
+  wrap.innerHTML = `
+    <div class="bubble" id="loading-msg" style="background:#eff6ff;border-color:#bfdbfe;color:#1e40af;display:flex;align-items:center;gap:10px;">
+      <div style="flex-shrink:0;width:18px;height:18px;border:2px solid #bfdbfe;border-top-color:#2563eb;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+      <span style="font-size:13px;">${message}</span>
+    </div>`;
+  msgs.appendChild(wrap);
   scrollBottom();
 }
 
