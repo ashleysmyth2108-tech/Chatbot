@@ -1446,7 +1446,7 @@ async function raiseGdprTicket(scenario) {
       'multiple_match': 'Email address matched multiple accounts',
       'id_mismatch': 'Member ID does not match email address'
     };
-    await fetch(POST_URL, {
+    const resp = await fetch(POST_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1459,6 +1459,29 @@ async function raiseGdprTicket(scenario) {
         chatSummary: `GDPR verification failed. Scenario: ${scenario}. Name: ${user.name}, Email: ${user.email}, Member ID: ${user.memberId}.`
       })
     });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.ticketId) {
+        // Show ticket ref in chat
+        const msgs = document.getElementById('messages');
+        const ref = document.createElement('div');
+        ref.className = 'msg system';
+        ref.innerHTML = `<div class="bubble" style="background:#fffbeb;border-color:#fde68a;color:#92400e;border-radius:8px;padding:10px 14px;font-size:12px;text-align:center;">
+          Your case has been logged — Ref <span style="font-family:monospace;background:rgba(0,0,0,.08);padding:2px 6px;border-radius:4px;">#${data.ticketId}</span><br/>
+          A member of our team will be in touch to verify your details.
+        </div>`;
+        msgs.appendChild(ref);
+        scrollBottom();
+        // Start polling so agent replies come through
+        const status = isInHours() ? 'open' : 'ooh';
+        if (status === 'open') {
+          startPolling(data.ticketId, new Date().toISOString());
+          cfg('msg-input').disabled = true;
+          cfg('msg-input').placeholder = 'Verification failed — our team will be in touch';
+          cfg('send-btn').disabled = true;
+        }
+      }
+    }
   } catch(e) {
     console.error('GDPR ticket error:', e);
   }
