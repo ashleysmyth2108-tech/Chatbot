@@ -518,7 +518,7 @@ function startChat() {
   if (!name) { cfg('f-name').classList.add('error'); cfg('err-name').classList.add('show'); valid = false; }
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { cfg('f-email').classList.add('error'); cfg('err-email').classList.add('show'); valid = false; }
   if (!valid) return;
-  user = { name, email, memberId: member };
+  user = { name, email, memberId: member.replace(/^CX-/i, '').trim() };
   history = [];
   selectedProduct = null;
   cfg('session-label').textContent = name;
