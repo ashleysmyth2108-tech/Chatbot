@@ -754,12 +754,12 @@ function handleResponse(result) {
     }
     if (result.scenario === 'not_found' || result.scenario === 'multiple_match') {
       appendMsg('ai', "We could not find an account matching those details. For security, a member of our team will be in touch to verify your identity and assist you shortly.", false);
-      raiseGdprTicket(result.scenario);
+      handleGdprFailure(result.ticketId);
       return;
     }
     if (result.scenario === 'id_mismatch') {
       appendMsg('ai', "The member ID you provided does not match our records for that email address. For security, a member of our team will be in touch to verify your details.", false);
-      raiseGdprTicket('id_mismatch');
+      handleGdprFailure(result.ticketId);
       return;
     }
   }
@@ -1437,54 +1437,26 @@ function testHighDemand() {
   showCountdownRetry('test message', 1);
 }
 
-/* GDPR VERIFICATION FAILURE — raise Zendesk ticket */
-async function raiseGdprTicket(scenario) {
-  disableInput('Verification failed — our team will be in touch');
-  try {
-    const scenarioLabels = {
-      'not_found': 'Email address not found in system',
-      'multiple_match': 'Email address matched multiple accounts',
-      'id_mismatch': 'Member ID does not match email address'
-    };
-    const resp = await fetch(POST_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ticketId: '',
-        message: `[GDPR VERIFICATION FAILED] Scenario: ${scenario}. Reason: ${scenarioLabels[scenario] || scenario}. Member provided name: ${user.name}, email: ${user.email}, member ID: ${user.memberId}. A human agent must verify identity before sharing any account information.`,
-        authorName: user.name,
-        csatRating: '',
-        csatComment: '',
-        selectedProduct: selectedProduct || 'Unknown',
-        chatSummary: `GDPR verification failed. Scenario: ${scenario}. Name: ${user.name}, Email: ${user.email}, Member ID: ${user.memberId}.`
-      })
-    });
-    if (resp.ok) {
-      const data = await resp.json();
-      if (data.ticketId) {
-        // Show ticket ref in chat
-        const msgs = document.getElementById('messages');
-        const ref = document.createElement('div');
-        ref.className = 'msg system';
-        ref.innerHTML = `<div class="bubble" style="background:#fffbeb;border-color:#fde68a;color:#92400e;border-radius:8px;padding:10px 14px;font-size:12px;text-align:center;">
-          Your case has been logged — Ref <span style="font-family:monospace;background:rgba(0,0,0,.08);padding:2px 6px;border-radius:4px;">#${data.ticketId}</span><br/>
-          A member of our team will be in touch to verify your details.
-        </div>`;
-        msgs.appendChild(ref);
-        scrollBottom();
-        // Start polling so agent replies come through
-        const status = isInHours() ? 'open' : 'ooh';
-        if (status === 'open') {
-          startPolling(data.ticketId, new Date().toISOString());
-          cfg('msg-input').disabled = true;
-          cfg('msg-input').placeholder = 'Verification failed — our team will be in touch';
-          cfg('send-btn').disabled = true;
-        }
-      }
+/* GDPR VERIFICATION FAILURE — handle ticket ID returned from PA */
+function handleGdprFailure(ticketId) {
+  const msgs = document.getElementById('messages');
+  if (ticketId) {
+    // Show ticket ref
+    const ref = document.createElement('div');
+    ref.className = 'msg system';
+    ref.innerHTML = `<div class="bubble" style="background:#fffbeb;border-color:#fde68a;color:#92400e;border-radius:8px;padding:10px 14px;font-size:12px;text-align:center;">
+      Your case has been logged — Ref <span style="font-family:monospace;background:rgba(0,0,0,.08);padding:2px 6px;border-radius:4px;">#${ticketId}</span><br/>
+      A member of our team will be in touch to verify your details.
+    </div>`;
+    msgs.appendChild(ref);
+    scrollBottom();
+    // Start polling so agent replies come through
+    if (isInHours()) {
+      startPolling(ticketId, new Date().toISOString());
     }
-  } catch(e) {
-    console.error('GDPR ticket error:', e);
   }
+  // Always disable input — member cannot continue until verified
+  disableInput('Verification failed — our team will be in touch');
 }
 
 (function init() {
