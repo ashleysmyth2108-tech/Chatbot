@@ -754,10 +754,12 @@ function handleResponse(result) {
     }
     if (result.scenario === 'not_found' || result.scenario === 'multiple_match') {
       appendMsg('ai', "We could not find an account matching those details. For security, a member of our team will be in touch to verify your identity and assist you shortly.", false);
+      raiseGdprTicket(result.scenario);
       return;
     }
     if (result.scenario === 'id_mismatch') {
       appendMsg('ai', "The member ID you provided does not match our records for that email address. For security, a member of our team will be in touch to verify your details.", false);
+      raiseGdprTicket('id_mismatch');
       return;
     }
   }
@@ -1433,6 +1435,39 @@ async function submitCallbackTicket() {
 function testHighDemand() {
   showScreen('chat');
   showCountdownRetry('test message', 1);
+}
+
+/* GDPR VERIFICATION FAILURE — raise Zendesk ticket */
+async function raiseGdprTicket(scenario) {
+  disableInput('Verification failed — our team will be in touch');
+  try {
+    const webhookUrl = cfg('cfg-webhook').value.trim();
+    if (!webhookUrl) return;
+    const scenarioLabels = {
+      'not_found': 'Email address not found in system',
+      'multiple_match': 'Email address matched multiple accounts',
+      'id_mismatch': 'Member ID does not match email address'
+    };
+    await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user: { name: user.name, email: user.email, memberId: user.memberId },
+        message: `[GDPR VERIFICATION FAILED] Scenario: ${scenario}. Reason: ${scenarioLabels[scenario] || scenario}. Member provided name: ${user.name}, email: ${user.email}, member ID: ${user.memberId}. A human agent must verify identity before sharing any account information.`,
+        selectedProduct: selectedProduct || 'Unknown',
+        history: [],
+        meta: {
+          timestamp: new Date().toISOString(),
+          timezone: 'Europe/London',
+          forceHuman: true,
+          gdprVerificationFailed: true,
+          gdprScenario: scenario
+        }
+      })
+    });
+  } catch(e) {
+    console.error('GDPR ticket error:', e);
+  }
 }
 
 (function init() {
