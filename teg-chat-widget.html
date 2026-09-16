@@ -787,6 +787,7 @@ function handleResponse(result) {
   if (result.cached_profile) cachedProfile = result.cached_profile;
   appendMsg('ai', reply || 'Sorry, I did not receive a response. Please try again.', true);
   history.push({ role: 'assistant', content: reply });
+}
 
 /* MESSAGES */
 function appendMsg(role, text, showFeedback = false) {
