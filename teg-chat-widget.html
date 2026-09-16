@@ -473,6 +473,7 @@ let user = { name: '', email: '', memberId: '' };
 let history = [];
 let busy = false;
 let csatRating = 0;
+let cachedProfile = null;
 
 /* LIVE AGENT STATE */
 const POLL_URL = 'https://default39c9cfa6ac964804a105db8c03e148.7d.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/25/workflows/573579399d814fd39b9aaf78c016d304/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=zxNYcRevuMUCSotn4qAblZ_1OKagB_nSHcN4-uQqhT8';
@@ -723,7 +724,9 @@ async function getAIResponse(message) {
     message: message,
     selectedProduct: selectedProduct || 'Unknown',
     history: history.slice(-10),
-    meta: { timestamp: new Date().toISOString(), timezone: 'Europe/London' }
+    meta: { timestamp: new Date().toISOString(), timezone: 'Europe/London' },
+    cached_profile: cachedProfile,
+    session_verified: cachedProfile !== null
   };
 
   const controller = new AbortController();
@@ -753,7 +756,8 @@ async function getAIResponse(message) {
 function handleResponse(result) {
   // New member-verify format: scenario + ai_reply
   if (result.scenario) {
-    if (result.scenario === 'single_match') {
+     if (result.scenario === 'single_match') {
+      if (result.cached_profile) cachedProfile = result.cached_profile;
       const reply = result.ai_reply || '';
       appendMsg('ai', reply, true);
       history.push({ role: 'assistant', content: reply });
@@ -780,9 +784,9 @@ function handleResponse(result) {
     if (status === 'open' && ticketId) startPolling(ticketId, ticketCreatedAt || new Date().toISOString());
     return;
   }
+  if (result.cached_profile) cachedProfile = result.cached_profile;
   appendMsg('ai', reply || 'Sorry, I did not receive a response. Please try again.', true);
   history.push({ role: 'assistant', content: reply });
-}
 
 /* MESSAGES */
 function appendMsg(role, text, showFeedback = false) {
@@ -1062,7 +1066,8 @@ function resetChat() {
   cfg('start-again-btn').style.display = 'none';
   cfg('header-product-label').style.display = 'none';
   cfg('header-product-label').textContent = '';
-  selectedProduct = null;
+    selectedProduct = null;
+  cachedProfile = null;
   agentMode = false;
   activeTicketId = null;
   lastCommentId = null;
